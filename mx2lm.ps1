@@ -740,6 +740,179 @@ function New-SVGTensorClusterDelta {
   }
 }
 
+# [14.4] SVG-TENSOR CLUSTER FILE FORMAT (STC-SVG-1)
+function New-SVGTensorClusterMetadata {
+  param(
+    [Parameter(Mandatory = $true)][string]$Quantization,
+    [Parameter(Mandatory = $true)][bool]$Deterministic,
+    [Parameter(Mandatory = $true)][bool]$Replayable,
+    [Parameter(Mandatory = $true)][string[]]$Lanes
+  )
+
+  return @{
+    type          = 'svg.tensor.cluster'
+    version       = '1.0'
+    quantization  = $Quantization
+    deterministic = $Deterministic
+    replayable    = $Replayable
+    scxq2         = @{
+      lanes = $Lanes
+    }
+  }
+}
+
+function New-SVGTensorNode {
+  param(
+    [Parameter(Mandatory = $true)][double]$X,
+    [Parameter(Mandatory = $true)][double]$Y,
+    [Parameter(Mandatory = $true)][double]$Radius,
+    [Parameter(Mandatory = $true)][string]$NodeId,
+    [Parameter(Mandatory = $true)][double]$Weight,
+    [Parameter(Mandatory = $true)][double]$Bias,
+    [Parameter(Mandatory = $true)][string]$DType
+  )
+
+  return @{
+    element     = 'circle'
+    cx          = $X
+    cy          = $Y
+    r           = $Radius
+    data_node   = $NodeId
+    data_weight = $Weight
+    data_bias   = $Bias
+    data_dtype  = $DType
+  }
+}
+
+function New-SVGTensorEdge {
+  param(
+    [Parameter(Mandatory = $true)][double]$X1,
+    [Parameter(Mandatory = $true)][double]$Y1,
+    [Parameter(Mandatory = $true)][double]$X2,
+    [Parameter(Mandatory = $true)][double]$Y2,
+    [Parameter(Mandatory = $true)][string]$From,
+    [Parameter(Mandatory = $true)][string]$To,
+    [Parameter(Mandatory = $true)][double]$Weight
+  )
+
+  return @{
+    element     = 'line'
+    x1          = $X1
+    y1          = $Y1
+    x2          = $X2
+    y2          = $Y2
+    data_from   = $From
+    data_to     = $To
+    data_weight = $Weight
+  }
+}
+
+function New-SVGTensorPath {
+  param(
+    [Parameter(Mandatory = $true)][string]$Path,
+    [Parameter(Mandatory = $true)][string]$Role,
+    [Parameter(Mandatory = $true)][double]$Weight
+  )
+
+  return @{
+    element     = 'path'
+    d           = $Path
+    data_role   = $Role
+    data_weight = $Weight
+  }
+}
+
+function New-SVGTensorClusterDocument {
+  param(
+    [Parameter(Mandatory = $true)][int]$Width,
+    [Parameter(Mandatory = $true)][int]$Height,
+    [Parameter(Mandatory = $true)][string]$ViewBox,
+    [Parameter(Mandatory = $true)][string]$Hash,
+    [Parameter(Mandatory = $true)][hashtable]$Metadata,
+    [Parameter(Mandatory = $true)][array]$Nodes,
+    [Parameter(Mandatory = $true)][array]$Edges,
+    [array]$Paths = @()
+  )
+
+  return @{
+    '$schema'   = 'object://schema/svg.tensor.cluster.document.v1'
+    svg         = @{
+      xmlns     = 'http://www.w3.org/2000/svg'
+      width     = $Width
+      height    = $Height
+      viewBox   = $ViewBox
+      data_hash = $Hash
+    }
+    metadata    = $Metadata
+    nodes       = $Nodes
+    edges       = $Edges
+    paths       = $Paths
+  }
+}
+
+function Canonicalize-SVGTensorCluster {
+  param(
+    [Parameter(Mandatory = $true)][hashtable]$Document
+  )
+
+  return @{
+    '$schema' = 'object://schema/svg.tensor.cluster.canonical.v1'
+    source   = $Document
+    order    = @('metadata', 'defs', 'nodes', 'edges', 'paths')
+    floats   = @{
+      format = 'IEEE-754'
+      max_decimals = 6
+    }
+    encoding = 'utf-8'
+  }
+}
+
+# [14.5] GPU PROJECTION PATH (PS-GPU-1)
+function New-GPUBufferSpec {
+  param(
+    [Parameter(Mandatory = $true)][string]$Name,
+    [Parameter(Mandatory = $true)][string]$Source,
+    [Parameter(Mandatory = $true)][string]$Type
+  )
+
+  return @{
+    name   = $Name
+    source = $Source
+    type   = $Type
+  }
+}
+
+function New-GPUKernelSpec {
+  param(
+    [Parameter(Mandatory = $true)][string]$Kernel,
+    [Parameter(Mandatory = $true)][string[]]$Buffers
+  )
+
+  return @{
+    kernel  = $Kernel
+    buffers = $Buffers
+  }
+}
+
+function New-GPUProjectionPlan {
+  param(
+    [Parameter(Mandatory = $true)][string]$Device,
+    [Parameter(Mandatory = $true)][array]$Buffers,
+    [Parameter(Mandatory = $true)][hashtable]$Kernel,
+    [Parameter(Mandatory = $true)][string]$ResultBuffer
+  )
+
+  return @{
+    '$schema'      = 'object://schema/svg.tensor.cluster.gpu.plan.v1'
+    device         = $Device
+    buffers        = $Buffers
+    kernel         = $Kernel
+    result_buffer  = $ResultBuffer
+    determinism    = $true
+    authority      = 'none'
+  }
+}
+
 # [15] DEMO / SELF-TEST (OPTIONAL)
 function Invoke-MX2LMDemo {
   $vector = @(1.0, 2.0, 3.0)
